@@ -5,6 +5,8 @@ set -ex
 
 BUILD_DIR=$1
 CACHE_DIR=$2
+DEPS_DIR=$3
+IDX=$4
 VERSION_DIR=`cd $(dirname $0); cd ..; pwd`
 VERSION=`cat $VERSION_DIR/VERSION | sed 's/[\r\n]*$//'`
 ARCHIVE=`basename $VERSION`
@@ -39,15 +41,21 @@ compile_source() {
     cd $CACHE_DIR/$ARCHIVE_DIR
     make TARGET="linux-glibc" EXTRA_OBJS="contrib/prometheus-exporter/service-prometheus.o" USE_OPENSSL=1
   fi
+  cp $CACHE_DIR/$ARCHIVE_DIR/haproxy $DEPS_DIR/$IDX
 }
 
-vendor_bin() {
-  cp $CACHE_DIR/$ARCHIVE_DIR/haproxy $BUILD_DIR/haproxy
+add_to_path() {
+  echo "Adding haproxy to \$PATH"
+  mkdir -p $DEPS_DIR/$IDX/profile.d
+  cat <<-EOF > $DEPS_DIR/$IDX/profile.d/add-to-path.sh
+  export PATH=$PATH:\$DEPS_DIR/\$IDX
+  echo "Added haproxy to path \$PATH"
+EOF
 }
 
 get_source
 compile_source
-vendor_bin
+add_to_path
 
 echo "-----> Done."
 
